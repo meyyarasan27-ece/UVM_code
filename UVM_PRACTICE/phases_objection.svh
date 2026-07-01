@@ -27,6 +27,14 @@ class driver extends uvm_driver ;
   
   task run_phase(uvm_phase phase);
     super.run_phase(phase);
+    
+    phase.raise_objection(this);
+    
+    `uvm_info("RUN_PHASE","RUN PHASE RAISE OBJECTION CALLED FROM DRIVER COMPONENT",UVM_LOW);
+    #50;
+    phase.drop_objection(this);
+    `uvm_info("RUN_PHASE","RUN PHASE DROP OBJECTION CALLED FROM DRIVER COMPONENT",UVM_LOW);
+    
     `uvm_info("RUN_PHASE","RUN PHASE CALLED FROM DRIVER COMPONENT",UVM_LOW);
   endtask
 
@@ -61,6 +69,14 @@ class monitor extends uvm_monitor ;
   
   task run_phase(uvm_phase phase);
     super.run_phase(phase);
+    
+    phase.raise_objection(this);
+    
+    `uvm_info("RUN_PHASE","RUN PHASE RAISE OBJECTION CALLED FROM MONITOR COMPONENT",UVM_LOW);
+    #50;
+    phase.drop_objection(this);
+    `uvm_info("RUN_PHASE","RUN PHASE DROP OBJECTION CALLED FROM MONITOR COMPONENT",UVM_LOW);
+    
     `uvm_info("RUN_PHASE","RUN PHASE CALLED FROM MONITOR COMPONENT",UVM_LOW);
   endtask
   
@@ -102,6 +118,14 @@ class agent extends uvm_agent ;
   
   task run_phase(uvm_phase phase);
     super.run_phase(phase);
+    
+    phase.raise_objection(this);
+    
+    `uvm_info("RUN_PHASE","RUN PHASE RAISE OBJECTION CALLED FROM AGENT COMPONENT",UVM_LOW);
+    #50;
+    phase.drop_objection(this);
+    `uvm_info("RUN_PHASE","RUN PHASE DROP OBJECTION CALLED FROM AGENT COMPONENT",UVM_LOW);
+    
     `uvm_info("RUN_PHASE","RUN PHASE CALLED FROM AGENT COMPONENT",UVM_LOW);
   endtask
   
@@ -137,6 +161,8 @@ class environment extends uvm_env ;
   
   task run_phase(uvm_phase phase);
     super.run_phase(phase);
+    
+    
     `uvm_info("RUN_PHASE","RUN PHASE CALLED FROM ENVIRONMENT COMPONENT",UVM_LOW);
   endtask
   
