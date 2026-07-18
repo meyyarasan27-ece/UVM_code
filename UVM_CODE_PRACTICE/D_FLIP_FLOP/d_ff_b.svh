@@ -118,6 +118,54 @@ class driver extends uvm_driver #(seq_item) ;
 endclass
 
 
+class coverage extends uvm_subscriber #(seq_item);
+  seq_item cov_item ;
+  
+  `uvm_component_utils(coverage)
+  
+  
+  covergroup cg ;
+    option.per_instance = 1 ;
+    
+    data_cp : coverpoint cov_item.data{
+      bins b1 = {0,1};
+    }
+    
+    q_cp : coverpoint cov_item.q {
+      bins b1 = {0,1};
+    }
+    
+  
+  endgroup
+  
+  function new(string name = "coverage",uvm_component parent = null);
+    
+    super.new(name,parent);
+    cg = new() ;
+    
+  endfunction
+  
+  function void write(seq_item t);
+    
+    cov_item = t ;
+    cg.sample();
+    
+    endfunction
+  
+  
+  
+  function void report_phase(uvm_phase phase);
+    super.report_phase(phase);
+    
+    `uvm_info(get_type_name(),$sformatf("TOTAL COVERAGE IS %0.2f%%",cg.get_coverage()),UVM_LOW);
+    
+  endfunction
+  
+  
+endclass
+
+
+
 class monitor extends uvm_monitor ;
   virtual dff_intf vif ;
   uvm_analysis_port #(seq_item) item_collected_port ;
@@ -227,6 +275,7 @@ endclass
 class env extends uvm_env ;
   agent agnt ;
   scoreboard scb ;
+  coverage cov ;
   
   `uvm_component_utils(env) 
   
@@ -240,6 +289,7 @@ class env extends uvm_env ;
     
     agnt = agent :: type_id :: create("agnt",this);
     scb  = scoreboard :: type_id :: create("scb",this);
+    cov = coverage :: type_id :: create("cov",this);
     
   endfunction
   
@@ -247,6 +297,7 @@ class env extends uvm_env ;
     super.connect_phase(phase);
     
     agnt.mon.item_collected_port.connect(scb.item_collected_export);
+    agnt.mon.item_collected_port.connect(cov.analysis_export) ;
   endfunction
   
 endclass
