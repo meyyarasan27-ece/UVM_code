@@ -136,6 +136,87 @@ class driver extends uvm_driver #(sequence_item) ;
   
 endclass 
 
+
+class coverage extends uvm_subscriber #(sequence_item);
+  
+  sequence_item cov_item ;
+  
+  `uvm_component_utils(coverage)
+  
+  
+  
+  covergroup cg ;
+    option.per_instance = 1 ;
+    
+    cp_A : coverpoint cov_item.A {
+      bins b_zeo = {0} ;
+      bins b_low = {[1:63]};
+      bins b_mid = {[64 :191]};
+      bins b_high = {[192 : 254]};
+      bins b_max = {255};
+    }
+    
+    cp_B : coverpoint cov_item.B{
+      bins b_zero ={0};
+      bins b_low = {[1:63]};
+      bins b_mid = {[64 : 191]};
+      bins b_high = {[192 : 254]};
+      bins b_max = {255};
+    }
+    
+    cp_opcode : coverpoint cov_item.opcode{
+      bins add = {3'b000} ;
+      bins sub = {3'b001} ;
+      bins log_and = {3'b010};
+      bins log_or = {3'b011} ;
+      bins log_xor = {3'b100};
+      bins log_not = {3'b101};
+      bins rsh = {3'b110};
+      bins lsh = {3'b111};
+    }
+    
+    
+    cp_result : coverpoint cov_item.result {
+      bins b_zero = {0};
+      bins b_low  = {[1:63]} ;
+      bins b_mid = {[64:191]};
+      bins b_high = {[192:254]};
+      bins b_maax = {255};
+    }
+    
+    
+    cross_a_opcode : cross cp_A , cp_opcode ;
+    cross_opcode_result : cross cp_opcode , cp_result ;
+    
+    
+  endgroup
+  
+  function new(string name = "coverage" , uvm_component parent = null);
+    super.new(name,parent);
+    
+    cg = new() ;
+    
+  endfunction
+  
+  
+  function void write(sequence_item t);
+    cov_item = t ;
+    cg.sample() ;
+    
+  endfunction
+  
+  
+  
+  function void report_phase(uvm_phase phase);
+    super.report_phase(phase);
+    
+    `uvm_info(get_type_name(),$sformatf("THE TOTAL COVERAGE IS %0.2f%%",cg.get_coverage()),UVM_NONE);
+    
+  endfunction
+  
+  
+endclass
+
     
 class monitor extends uvm_monitor ;
   `uvm_component_utils(monitor)
@@ -252,13 +333,13 @@ class scoreboard extends uvm_scoreboard ;
         seq_item = scb_item.pop_front();
       
       
-      if((seq_item.A + seq_item.B == seq_item.result ) && seq_item.opcode == 0 ) begin
+      if(((seq_item.A + seq_item.B) == seq_item.result ) && seq_item.opcode == 0 ) begin
         
         `uvm_info(get_type_name(),$sformatf("[PASS] : A =  %0d | B = %0d | OPCODE = %0b | result = %0d",seq_item.A,seq_item.B,seq_item.opcode,seq_item.result),UVM_LOW) ;
         $display("-------------------------------------------------");
         
       end
-      else if((seq_item.A - seq_item.B == seq_item.result ) && seq_item.opcode == 1 ) begin
+      else if(((seq_item.A - seq_item.B) == seq_item.result ) && seq_item.opcode == 1 ) begin
         
         `uvm_info(get_type_name(),$sformatf("[PASS] : A =  %0d | B = %0d | OPCODE = %0b | result = %0d",seq_item.A,seq_item.B,seq_item.opcode,seq_item.result),UVM_LOW) ;
         $display("-------------------------------------------------");
@@ -270,19 +351,19 @@ class scoreboard extends uvm_scoreboard ;
         $display("-------------------------------------------------");
         
       end
-      else if((seq_item.A | seq_item.B == seq_item.result ) && seq_item.opcode == 3 ) begin
+      else if(((seq_item.A | seq_item.B) == seq_item.result ) && seq_item.opcode == 3 ) begin
         
         `uvm_info(get_type_name(),$sformatf("[PASS] : A =  %0d | B = %0d | OPCODE = %0b | result = %0d",seq_item.A,seq_item.B,seq_item.opcode,seq_item.result),UVM_LOW) ;
         $display("-------------------------------------------------");
         
       end
-      else if((seq_item.A ^ seq_item.B == seq_item.result ) && seq_item.opcode == 4 ) begin
+      else if(((seq_item.A ^ seq_item.B) == seq_item.result ) && seq_item.opcode == 4 ) begin
         
         `uvm_info(get_type_name(),$sformatf("[PASS] : A =  %0d | B = %0d | OPCODE = %0b | result = %0d",seq_item.A,seq_item.B,seq_item.opcode,seq_item.result),UVM_LOW) ;
         $display("-------------------------------------------------");
         
       end
-      else if((~seq_item.A  == seq_item.result ) && seq_item.opcode == 5 ) begin
+      else if(((~seq_item.A)  == seq_item.result ) && seq_item.opcode == 5 ) begin
         
         `uvm_info(get_type_name(),$sformatf("[PASS] : A =  %0d | OPCODE = %0b | result = %0d",seq_item.A,seq_item.opcode,seq_item.result),UVM_LOW) ;
         $display("-------------------------------------------------");
@@ -316,6 +397,7 @@ endclass
 class env extends uvm_env ;
   agent agnt ;
   scoreboard scb ;
+  coverage cov ;
   
   `uvm_component_utils(env)
   
@@ -330,6 +412,7 @@ class env extends uvm_env ;
     
     agnt = agent :: type_id :: create("agnt",this);
     scb  = scoreboard :: type_id :: create("scb" ,this);
+    cov = coverage :: type_id :: create("cov",this);
   endfunction
   
   function void connect_phase(uvm_phase phase);
@@ -337,7 +420,7 @@ class env extends uvm_env ;
     super.connect_phase(phase);
     
     agnt.mon.item_collect_port.connect(scb.item_collect_export);
-    
+    agnt.mon.item_collect_port.connect(cov.analysis_export);
   endfunction
   
 endclass
@@ -395,3 +478,5 @@ module top_tb ;
     run_test("test");
   end
 endmodule
+
+
