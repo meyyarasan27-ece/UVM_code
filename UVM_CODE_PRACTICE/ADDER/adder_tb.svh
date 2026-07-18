@@ -20,8 +20,9 @@ class seq_item extends uvm_sequence_item ;
     
   endfunction
   
-  constraint inp_c { in1 < 100 ; 
-                     in2 < 100 ;}
+  constraint inp_c { in1 inside {[0:255]}; 
+                     in2 inside {[0:255]};
+                     }
   
   
 endclass
@@ -37,7 +38,7 @@ class base_seq extends uvm_sequence #(seq_item);
   endfunction
   
 task body();
-  repeat(10)
+  repeat(100)
     begin
       req = seq_item::type_id::create("req");
       `uvm_info(get_type_name() , "Base sequence inside body",UVM_LOW) ;
@@ -104,7 +105,90 @@ class driver extends uvm_driver #(seq_item) ;
    end
  endtask
   
-endclass 
+endclass
+
+
+
+class coverage extends uvm_component ;
+  uvm_analysis_imp #(seq_item,coverage) cov_collect_export ;
+  seq_item cov_item ;
+  
+  `uvm_component_utils(coverage)
+  
+  
+  covergroup cg ;
+    option.per_instance = 1;
+    
+    cp_data1 : coverpoint cov_item.in1{
+      bins b_low  = {[0:63]};
+      bins b_mid  = {[64:123]};
+      bins b_high = {[124:255]};
+    }
+    
+    
+    cp_data2 : coverpoint cov_item.in2{
+      bins b_low  = {[0:63]};
+      bins b_mid  = {[64:123]};
+      bins b_high = {[124:255]};
+    }
+    
+    cp_out : coverpoint cov_item.out{
+      bins b_low  = {[0:123]};
+      bins b_mid  = {[124:255]};
+      bins b_high = {[256:511]};
+    }
+    
+    cross_out_in1 : cross cp_out , cp_data2 ;
+    
+  endgroup
+  
+  
+  
+  function new(string name = "coverage", uvm_component parent = null);
+    
+    super.new(name,parent);
+    cov_collect_export = new("cov_collect_export",this);
+    cg = new() ;
+    
+  endfunction
+  
+  
+  function void write(seq_item item);
+   
+    cov_item = item ;
+    cg.sample() ;
+    
+  endfunction
+  
+  
+  
+  function void report_phase(uvm_phase phase);
+    super.report_phase(phase);
+    
+  $display("\n----------------------------------------");
+  $display("          COVERAGE REPORT");
+  $display("----------------------------------------");
+
+  $display("DATA1 COVERAGE  = %0.2f%%",
+           cg.cp_data1.get_coverage());
+
+  $display("DATA2 COVERAGE  = %0.2f%%",
+           cg.cp_data2.get_coverage());
+
+  $display("OUTPUT COVERAGE  = %0.2f%%",
+           cg.cp_out.get_coverage());
+
+  $display("CROSS COVERAGE   = %0.2f%%",
+           cg.cross_out_in1.get_coverage());
+
+  $display("TOTAL COVERAGE   = %0.2f%%",
+           cg.get_coverage());
+
+  $display("----------------------------------------");
+    
+  endfunction
+  
+endclass
 
     
 class monitor extends uvm_monitor ;
@@ -225,7 +309,7 @@ class scoreboard extends uvm_scoreboard ;
         
         $display("--------------------------------------------");
       
-        if(sb_item.in1 + sb_item.in2 == sb_item.out)begin
+        if((sb_item.in1 + sb_item.in2) == sb_item.out)begin
           `uvm_info(get_type_name(),$sformatf("[Matched] in1 =%0d | in2 = %0d | out = %0d",sb_item.in1,sb_item.in2,sb_item.out),UVM_LOW);
         end
         else begin
@@ -244,8 +328,9 @@ endclass
 class env extends uvm_env ;
   agent agnt ;
   scoreboard scb ;
+  coverage cov ;
   
-  `uvm_component_utils(env);
+  `uvm_component_utils(env)
   
   function new(string name = "env" , uvm_component parent = null);
     super.new(name,parent);
@@ -256,6 +341,7 @@ class env extends uvm_env ;
     
     agnt = agent :: type_id :: create("agnt",this);
     scb = scoreboard :: type_id :: create ("scb",this) ;
+    cov = coverage :: type_id :: create("cov",this);
     
   endfunction
   
@@ -263,6 +349,7 @@ class env extends uvm_env ;
     super.connect_phase(phase);
     
    agnt.mon.item_collect_port.connect(scb.item_collect_export);
+    agnt.mon.item_collect_port.connect(cov.cov_collect_export);
     
   endfunction
 endclass
