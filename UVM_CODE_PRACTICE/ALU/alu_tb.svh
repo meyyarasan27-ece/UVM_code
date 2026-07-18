@@ -70,7 +70,7 @@ class base_seq extends uvm_sequence #(sequence_item);
   endfunction
   
   task body();
-    repeat(10)
+    repeat(100)
       begin
         req = sequence_item::type_id::create("req");
       
@@ -258,7 +258,7 @@ class scoreboard extends uvm_scoreboard ;
         $display("-------------------------------------------------");
         
       end
-      else if((seq_item.A + seq_item.B == seq_item.result ) && seq_item.opcode == 1 ) begin
+      else if((seq_item.A - seq_item.B == seq_item.result ) && seq_item.opcode == 1 ) begin
         
         `uvm_info(get_type_name(),$sformatf("[PASS] : A =  %0d | B = %0d | OPCODE = %0b | result = %0d",seq_item.A,seq_item.B,seq_item.opcode,seq_item.result),UVM_LOW) ;
         $display("-------------------------------------------------");
