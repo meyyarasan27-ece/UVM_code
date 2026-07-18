@@ -210,6 +210,8 @@ class coverage extends uvm_component ;
     super.report_phase(phase);
     
     $display("\n-------------------------------------------------------");
+    $display("                   COVERAGE REPORT                       ");
+    $display("\n-------------------------------------------------------");
     
     $display("DATA 1  : %0.2f%%",cg.cp_data1.get_coverage());
     $display("DATA 2  : %0.2f%%",cg.cp_data2.get_coverage());
