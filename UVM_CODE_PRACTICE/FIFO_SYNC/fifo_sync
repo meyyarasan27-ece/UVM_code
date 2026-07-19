@@ -1,0 +1,80 @@
+module fifo_sync (fifo_sync_intf intff);
+  
+  logic [2:0]rd_ptr ;
+  logic [2:0]wr_ptr ;
+  logic [7:0] mem[0:7] ;
+  logic [3:0]counter ;
+  
+  //write operation
+  
+  always_ff @(posedge intff.clk or posedge intff.reset) begin
+    if(intff.reset)begin
+      
+      wr_ptr <= 0 ;
+      
+    end
+    else begin
+      
+      if(intff.wr_enb && (!intff.full))begin
+        
+        mem[wr_ptr] <= intff.wr_data ;
+        wr_ptr <= wr_ptr + 1 ;
+        
+      end
+      
+    end
+  end
+  
+  
+  //read  operation
+  
+  always_ff @(posedge intff.clk or posedge intff.reset)begin
+    if(intff.reset)begin
+      
+      rd_ptr <= 0 ;
+      intff.rd_data <= 8'b0 ;
+      
+    end
+    else begin 
+      
+      if(intff.rd_enb && (!intff.empty))begin
+        
+        intff.rd_data <= mem[rd_ptr] ;
+        rd_ptr <= rd_ptr + 1 ;
+        
+      end
+      
+    end
+  
+  
+  end
+  // empty and full logic 
+  
+  always_ff @(posedge intff.clk or posedge intff.reset) begin
+    if (intff.reset) begin
+      counter <= 4'd0;
+    end
+    else begin
+      case ({(intff.wr_enb && !intff.full),
+             (intff.rd_enb && !intff.empty)})
+
+        // Write only
+        2'b10: counter <= counter + 1'b1;
+
+        // Read only
+        2'b01: counter <= counter - 1'b1;
+
+        // Read and Write together
+        // Count remains same
+        2'b11: counter <= counter;
+
+        // No operation
+        default: counter <= counter;
+      endcase
+    end
+  end
+  
+  assign intff.full = (counter == 8) ;
+  assign intff.empty = (counter == 0) ;
+  
+endmodule
